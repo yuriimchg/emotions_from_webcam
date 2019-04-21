@@ -2,5 +2,5 @@
 .idea
 venv
 
-face_landmarks.dat
-mmod_human_face_detector.dat
+*.dat
+*.zip
