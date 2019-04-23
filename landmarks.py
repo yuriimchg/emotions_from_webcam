@@ -8,7 +8,7 @@ import cv2
 
 landmark_path = 'face_landmarks.dat'
 keypoints_path = 'training/xgb_model.pickle'
-input_src = 'media/filthy.mp4' or 0
+input_src = 'media/ems.mp4' or 0
 emotions = ["neutral", "anger", "contempt", "disgust", "fear", "happy", "sadness", "surprise"]
 encoded_emotions = {t: em for t, em in enumerate(emotions)}
 
@@ -27,7 +27,7 @@ def shape_to_array(shape, dtype="int", landmarks_count=68):
     return point
 
 
-def get_normalized_coords(shape, w, h, x_c, y_c):
+def get_normalized_coords(shape, h, w, x_c, y_c):
     face_landmarks = []
     for x, y in shape:
         rad_vector = np.sqrt(np.square((x_c - x) / w) + np.square((y_c - y) / h))
@@ -54,7 +54,6 @@ def get_face_landmarks(img_array, predictor):
     gray_image = cv2.cvtColor(img_array, cv2.COLOR_BGR2GRAY)
     rects = detector(gray_image, 1)
 
-    sample = []
     for i, rect in enumerate(rects):
 
         face_detector = predictor(gray_image, rect)
