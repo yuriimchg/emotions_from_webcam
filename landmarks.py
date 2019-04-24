@@ -27,57 +27,57 @@ def shape_to_array(shape, dtype="int", landmarks_count=68):
     return point
 
 
-def get_normalized_coords(shape, h, w, x_c, y_c):
-    face_landmarks = []
-    for x, y in shape:
-        rad_vector = np.sqrt(np.square((x_c - x) / w) + np.square((y_c - y) / h))
-        x_norm = (x_c - x) / w
-        y_norm = (y_c - y) / h
-        face_landmarks.append([rad_vector, x_norm, y_norm])
-    return np.array(face_landmarks)
+def get_normalized_coords(shape):
+    face_landmarks = np.zeros(shape.shape)
+
+    x_max = shape[:, 0].max()
+    x_min = shape[:, 0].min()
+    y_max = shape[:, 1].max()
+    y_min = shape[:, 1].min()
+
+    face_landmarks[:, 0] = (x_max - shape[:, 0]) / (x_max - x_min)
+    face_landmarks[:, 1] = (y_max - shape[:, 1]) / (y_max - y_min)
+
+    return face_landmarks
 
 
-def restore_coordinates(norm_shape, x_c, y_c, w, h):
-    shape = np.array(norm_shape).reshape(68, 3)
-    shape = np.delete(shape, obj=0, axis=1)
+def get_radius_vector(norm_shape):
+    x, y = np.split(np.array(norm_shape), 2, axis=1)
+    x_c, y_c = np.mean(norm_shape, axis=0)
+    return np.sqrt(np.square(x - x_c) + np.square(y - y_c))
 
-    shape[:, 0] = - x_c + w * shape[:, 0]
-    shape[:, 1] = - y_c + h * shape[:, 1]
-    return shape
+
+def get_angle(norm_shape):
+    x, y = np.split(np.array(norm_shape), 2, axis=1)
+    return np.arctan(x / y)
 
 
 def predict(model, norm_shape):
-    return model.predict(norm_shape.reshape([1, 204]))
-
-
-def get_face_landmarks(img_array, predictor):
-    gray_image = cv2.cvtColor(img_array, cv2.COLOR_BGR2GRAY)
-    rects = detector(gray_image, 1)
-
-    for i, rect in enumerate(rects):
-
-        face_detector = predictor(gray_image, rect)
-        shape = shape_to_array(face_detector)
-
-        x_c, y_c = np.mean(shape, axis=0)
-
-        norm_shape = get_normalized_coords(shape, *gray_image.shape, x_c, y_c)
-        prediction = predict(model, norm_shape)
-        prediction = encoded_emotions[int(prediction)]
-        print(x_c, y_c)
-        cv2.putText(img_array, f'{prediction}', (int(x_c), int(y_c)), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
-
-        for x, y in shape:
-            cv2.circle(image, (x, y), 2, (255, 255, 255), -1)
-        # x1, y1 = rect.left(), rect.top()
-        # x2, y2 = rect.right(), rect.bottom()
-
-        #cv2.rectangle(image, (x1, y1), (x2, y2), (255, 0, 255), 2)
+    return model.predict(norm_shape.reshape([1, 272]))
 
 
 while True:
     ret, image = capture.read()
-    get_face_landmarks(image, predictor)
+    gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    rects = detector(gray_image, 1)
+
+    for i, rect in enumerate(rects):
+        face_detector = predictor(gray_image, rect)
+        shape = shape_to_array(face_detector)
+        norm_shape = get_normalized_coords(shape)
+
+        radius_vector = get_radius_vector(norm_shape)
+        angle = get_angle(norm_shape)
+        print(norm_shape.shape, angle.shape, radius_vector.shape)
+        x, y = np.split(np.array(norm_shape), 2, axis=1)
+        prediction = predict(model, np.array([x, y, radius_vector, angle]))
+        prediction = encoded_emotions[int(prediction)]
+
+        x_c, y_c = np.mean(shape, axis=0)
+        cv2.putText(image, f'{prediction}', (int(x_c), int(y_c)), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
+
+        for x, y in shape:
+            cv2.circle(image, (x, y), 2, (255, 255, 255), -1)
 
     cv2.imshow('Press "q" to close the window', image)
     if cv2.waitKey(1) & 0xFF == ord('q'):
