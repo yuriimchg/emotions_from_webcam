@@ -64,17 +64,16 @@ while True:
     for i, rect in enumerate(rects):
         face_detector = predictor(gray_image, rect)
         shape = shape_to_array(face_detector)
-        norm_shape = get_normalized_coords(shape)
 
+        norm_shape = get_normalized_coords(shape)
         radius_vector = get_radius_vector(norm_shape)
         angle = get_angle(norm_shape)
-        print(norm_shape.shape, angle.shape, radius_vector.shape)
         x, y = np.split(np.array(norm_shape), 2, axis=1)
+
         prediction = predict(model, np.array([x, y, radius_vector, angle]))
-        prediction = encoded_emotions[int(prediction)]
 
         x_c, y_c = np.mean(shape, axis=0)
-        cv2.putText(image, f'{prediction}', (int(x_c), int(y_c)), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
+        cv2.putText(image, f'{encoded_emotions[int(prediction)]}', (int(x_c), int(y_c)), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
 
         for x, y in shape:
             cv2.circle(image, (x, y), 2, (255, 255, 255), -1)
