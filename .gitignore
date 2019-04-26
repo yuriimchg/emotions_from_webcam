@@ -1,3 +1,7 @@
 .git
 .idea
 venv
+
+*.dat
+*.zip
+*.mp4
